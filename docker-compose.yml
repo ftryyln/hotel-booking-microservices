@@ -1,0 +1,103 @@
+﻿version: "3.9"
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hotel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:4
+    ports:
+      - "8089:8080"
+    depends_on:
+      - postgres
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: build/auth/Dockerfile
+    environment:
+      HTTP_PORT: ":8080"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/hotel?sslmode=disable
+      JWT_SECRET: super-secret
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+
+  hotel-service:
+    build:
+      context: .
+      dockerfile: build/hotel/Dockerfile
+    environment:
+      HTTP_PORT: ":8081"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/hotel?sslmode=disable
+    depends_on:
+      - postgres
+    ports:
+      - "8081:8081"
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: build/booking/Dockerfile
+    environment:
+      HTTP_PORT: ":8082"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/hotel?sslmode=disable
+      PAYMENT_SERVICE_URL: http://payment-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
+    depends_on:
+      - postgres
+      - payment-service
+      - notification-service
+    ports:
+      - "8082:8082"
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: build/payment/Dockerfile
+    environment:
+      HTTP_PORT: ":8083"
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/hotel?sslmode=disable
+      PAYMENT_PROVIDER_KEY: sandbox-key
+      BOOKING_SERVICE_URL: http://booking-service:8082
+    depends_on:
+      - postgres
+    ports:
+      - "8083:8083"
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: build/notification/Dockerfile
+    environment:
+      HTTP_PORT: ":8085"
+    ports:
+      - "8085:8085"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: build/gateway/Dockerfile
+    environment:
+      HTTP_PORT: ":8088"
+      JWT_SECRET: super-secret
+      BOOKING_SERVICE_URL: http://booking-service:8082
+      PAYMENT_SERVICE_URL: http://payment-service:8083
+      AGGREGATE_TARGET_URL: http://hotel-service:8081
+    depends_on:
+      - booking-service
+      - payment-service
+      - hotel-service
+    ports:
+      - "8088:8088"
+
+volumes:
+  pgdata: {}

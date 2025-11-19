@@ -1,227 +1,120 @@
-# Hotel Booking System (Microservices Architecture)
+﻿# Hotel Booking Microservices (Go)
 
-## Repository Name
+Production-style backend for hotel booking platform using Go 1.21, PostgreSQL, and DDD-oriented microservices (Auth, Hotel, Booking, Payment, Notification, API Gateway).
 
-**hotel-booking-microservices**
+## Services
 
----
+- **Auth Service** – registration/login/JWT issuance.
+- **Hotel Service** – CRUD hotels, room types, rooms.
+- **Booking Service** – booking lifecycle, payment initiation, notifications.
+- **Payment Service** – Midtrans/Xendit mock, webhook, refunds, booking status updates.
+- **Notification Service** – simple logger-based dispatch.
+- **API Gateway** – JWT verification, rate limiting, reverse proxy, booking+payment aggregation.
 
-# 📄 Project Overview
+## Structure
 
-This project is a **Hotel Booking System** built using a **microservices architecture**, designed as a technical test to demonstrate backend engineering capability, clean architecture, SOLID principles, database design, payment gateway integration, and containerized deployments.
+```
+cmd/<service>
+internal/
+  domain/
+  usecase/
+  infrastructure/
+pkg/
+  config, logger, errors, dto, middleware, database, server, utils
+migrations/
+build/
+```
 
-The system provides core hotel operations such as:
+Shared DTOs enforce separation between requests, responses, and domain models. Each service respects DDD layers (domain -> usecase -> infrastructure) and SOLID via repository interfaces + dependency injection.
 
-* Room management
-* Availability search
-* Booking (order)
-* Payment via 3rd-party provider (Midtrans / Xendit)
-* Webhook handling
-* Check-in & Check-out
-* Refund processing
-* Authentication & Authorization
-
-All services are containerized with Docker, orchestrated using Docker Compose, and use PostgreSQL as the primary database.
-
----
-
-# 🧱 Architecture Summary
-
-The system consists of **4–5 microservices**:
-
-### 1. **Auth Service**
-
-* User registration & login
-* JWT authentication
-* User roles (admin, customer)
-* Middleware for service protection
-
-### 2. **Room Service**
-
-* CRUD Room Types
-* CRUD Rooms
-* Room availability per date
-* Price per night & optional overrides
-
-### 3. **Booking Service**
-
-* Create booking (PENDING)
-* Calculate price based on date range
-* Manage booking lifecycle: Pending → Paid → Confirmed → Checked-in → Checked-out
-* Cancel booking
-* Initiate refund requests
-* Communicate with Payment Service
-
-### 4. **Payment Service**
-
-* Integrates with **Midtrans or Xendit**
-* Creates payment invoice/charge
-* Handles webhook callbacks
-* Verifies HMAC/Signature
-* Trigger booking status changes
-* Refund processing
-
-### 5. **Notification Service** *(optional)*
-
-* Sends email/SMS notifications for:
-
-  * Booking confirmation
-  * Payment success
-  * Refund processing
-
----
-
-# 🗄 Database
-
-The project uses **PostgreSQL** with migration tooling (Prisma/TypeORM).
-
-## Core Entities
-
-* Users
-* Room Types
-* Rooms
-* Room Inventory
-* Bookings
-* Room Bookings
-* Payments
-* Checkins
-
-An ERD diagram is included in the documentation.
-
----
-
-# 🔌 Payment Integration
-
-The system integrates with:
-**Midtrans** (Snap API + Notifications) or **Xendit** (Invoices)
-
-### Payment Flow
-
-1. Booking created with `PENDING` status
-2. Booking Service requests Payment Service to create payment
-3. Payment Service calls provider API → returns payment URL
-4. User pays via hosted payment page
-5. Provider fires webhook callback
-6. Payment Service verifies signature & updates local DB
-7. Payment Service notifies Booking Service → Booking becomes `CONFIRMED`
-8. Refund (if requested) follows provider's refund API
-
----
-
-# ▶️ Running the System
-
-Make sure you have:
-
-* Docker
-* Docker Compose
-* Node.js (optional for local runs)
-
-### Start Everything
+## Getting Started
 
 ```bash
+cp .env.example .env # adjust as needed
 docker-compose up --build
 ```
 
-### Services Included in `docker-compose.yml`
+Services exposed via Docker Compose:
 
-* auth-service
-* room-service
-* booking-service
-* payment-service
-* notification-service (optional)
-* postgres
+- API Gateway: `http://localhost:8088`
+- Auth: `:8080`
+- Hotel: `:8081`
+- Booking: `:8082`
+- Payment: `:8083`
+- Notification: `:8085`
+- Adminer: `:8089`
+- Postgres: `:5432`
 
-### Environment Variables
-
-Each service contains an `.env.example` file.
-
-Copy and configure:
+Stop system:
 
 ```bash
-cp services/auth/.env.example services/auth/.env
-cp services/booking/.env.example services/booking/.env
-cp services/payment/.env.example services/payment/.env
+docker-compose down -v
 ```
 
----
+## Database & Migrations
 
-# 🧪 Testing
+All tables defined in `migrations/001_init.sql` use UUID primary keys plus indexes for FK columns. Run via your preferred migration tool or manually psql into the container.
 
-This project includes **unit tests & integration tests** focusing on:
+## Swagger / API Docs
 
-* Business logic (price calculation, booking rules)
-* Payment webhook verification
-* API route testing (via supertest/Jest)
-* Repository & service layer tests
-
-Run tests:
+Swagger annotations live directly inside handlers to keep docs near code. Install swag CLI once:
 
 ```bash
-npm test
+go install github.com/swaggo/swag/cmd/swag@v1.16.3
 ```
 
----
+Generate docs (output `docs/swagger/` containing `docs.go`, `swagger.yaml`, `swagger.json`):
 
-# 📜 API Documentation
-
-Included formats:
-
-* **OpenAPI/Swagger (YAML)**
-* **Postman Collection (JSON)**
-
-Describes all endpoints, sample requests, responses, and error structures.
-
----
-
-# 🧩 SOLID Principles
-
-The project applies:
-
-* **S**ingle Responsibility: Each microservice handles one domain
-* **O**pen/Closed: Payment Provider uses interfaces + adapter pattern
-* **L**iskov Substitution: Any payment provider can replace another
-* **I**nterface Segregation: Small interfaces between modules
-* **D**ependency Inversion: Service layer depends on abstractions
-
----
-
-# 📁 Repository Structure
-
-```
-hotel-booking-microservices/
-│
-├── services/
-│   ├── auth/
-│   ├── room/
-│   ├── booking/
-│   ├── payment/
-│   └── notification/
-│
-├── docker-compose.yml
-├── docs/
-│   ├── ERD.png
-│   ├── openapi.yml
-│   └── postman_collection.json
-│
-└── README.md
+```bash
+make swagger
 ```
 
----
+Import `docs/swagger/swagger.yaml` (or serve via swagger-ui) to inspect endpoints spanning Auth, Hotel, Booking, Payment (init/webhook/refund), Notification, and Gateway.
 
-# 📝 Project Scope Summary
+## Testing
 
-This project demonstrates:
+Unit tests cover core booking/payment flows plus repository SQL using sqlmock. Run from repo root:
 
-* Scalable microservices
-* Database design & migrations
-* Payment integration with third-party providers
-* Consistent API contracts
-* Secure authentication
-* Proper containerization
-* Clean, testable backend architecture
+```bash
+make test  # go test ./... -cover
+```
 
----
+Coverage target ~50% for domain-critical logic.
 
-# 👨‍💻 Author
+## Makefile Targets
 
-Fitry Yuliani
+- `make run` – `docker-compose up --build`
+- `make down` – `docker-compose down -v`
+- `make test` – run Go unit tests
+- `make lint` – `go vet ./...`
+- `make swagger` – regenerate swagger artifacts
+
+## Non-Functional Features
+
+- JWT middleware + role enforcement (pkg/middleware).
+- Structured logging via zap shared singleton.
+- Graceful shutdown wired for every service (context cancellation + SIGINT/SIGTERM).
+- Config via environment variables with `.env.example` template.
+- Rate limiting on API gateway (simple token spacing approach).
+- Consistent error response contract (`pkg/errors`, `dto.ErrorResponse`).
+- Context-aware HTTP clients for cross-service calls.
+- Payment provider abstraction for Midtrans/Xendit compatibility.
+
+## ERD
+
+| Entity | Important Fields | Relationships |
+|--------|------------------|---------------|
+| users | id, email, role | 1-* bookings |
+| hotels | id, name | 1-* room_types |
+| room_types | id, hotel_id | 1-* rooms, *-1 hotels |
+| rooms | id, room_type_id | *-1 room_types |
+| bookings | id, user_id, room_type_id | *-1 users, *-1 room_types, 1-1 payments, 1-1 checkins |
+| payments | id, booking_id | 1-1 bookings, 1-* refunds |
+| refunds | id, payment_id | *-1 payments |
+| checkins | id, booking_id | 1-1 bookings |
+
+## Notes
+
+- Payment service automatically updates booking status via HTTP callback after webhook success/fail.
+- Notification service currently logs messages; swap dispatcher for SMTP/SMS/etc.
+- Replace mock provider with real Midtrans/Xendit integration by implementing `domain.Provider`.
