@@ -304,6 +304,30 @@ Use Adminer (`http://localhost:8089`) to inspect database tables while testing.
 
 ---
 
+## API Gateway modes (whitelist vs proxy_all)
+
+- Toggle with `GATEWAY_MODE=whitelist|proxy_all` (default `whitelist`). Route map is loaded from `config/routes.yml` (override via `GATEWAY_ROUTES_FILE`).
+- Each route entry supports `prefix`, `upstream`, `strip_prefix`, `require_auth`, `auth_strategy=forward|validate`, and `health_path`. Fallback mapping expands `/api/*` prefixes automatically (see `config/routes.yml` for all services: auth, hotel, booking, payment, notification).
+- Gateway features in `proxy_all`:
+  - Path rewrite/strip-prefix per route.
+  - Auth forwarding; optional JWT validation before proxying when `auth_strategy=validate`.
+  - Upstream timeout (`UPSTREAM_TIMEOUT`, default 5s) and GET retries (`UPSTREAM_RETRIES`, default 2) with backoff.
+  - Circuit breaker (`CIRCUIT_BREAKER_*`) plus health checks (`HEALTH_INTERVAL`) gating readiness.
+  - Observability: `/metrics` (Prometheus text), `/debug/routes` (active routes + health), `/healthz` (aggregated upstream health).
+- Example docker-compose snippet (already wired): `api-gateway` sets `GATEWAY_MODE=proxy_all`, `GATEWAY_ROUTES_FILE=config/routes.yml`, timeout/retry/circuit envs, and depends_on downstream services.
+
+### Quick acceptance checks (from host)
+
+```
+curl -v http://localhost:8088/api/v1/hotels
+curl -v http://localhost:8088/api/v1/bookings/1          # requires Authorization header if route requires auth
+curl -v http://localhost:8088/api/v1/doesnotexist        # expect 404 + {"code":"not_found","message":"no upstream mapping"}
+curl -v http://localhost:8088/debug/routes               # list routes + health
+curl -v http://localhost:8088/metrics                    # Prometheus metrics
+```
+
+---
+
 ## Next Steps & Customization
 
 - Swap the mock payment provider with a real Midtrans/Xendit integration by implementing `domain.Provider`.

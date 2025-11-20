@@ -1,0 +1,56 @@
+routes:
+  - name: hotels
+    prefix: /api/v1/hotels
+    upstream: http://hotel-service:8081
+    strip_prefix: false
+    require_auth: false
+    auth_strategy: forward
+    health_path: /healthz
+  - name: bookings
+    prefix: /api/v1/bookings
+    upstream: http://booking-service:8082
+    strip_prefix: false
+    require_auth: true
+    auth_strategy: forward
+    health_path: /healthz
+  - name: auth
+    prefix: /api/v1/auth
+    upstream: http://auth-service:8080
+    strip_prefix: false
+    require_auth: false
+    auth_strategy: forward
+    health_path: /healthz
+  - name: payments
+    prefix: /api/v1/payments
+    upstream: http://payment-service:8083
+    strip_prefix: false
+    require_auth: true
+    auth_strategy: validate
+    health_path: /healthz
+  - name: notifications
+    prefix: /api/v1/notifications
+    upstream: http://notification-service:8085
+    strip_prefix: false
+    require_auth: false
+    auth_strategy: forward
+    health_path: /healthz
+fallback:
+  base_path: /api/v1
+  strip_base: false
+  health_path: /healthz
+  mapping:
+    hotels:
+      upstream: http://hotel-service:8081
+      strip_prefix: false
+    bookings:
+      upstream: http://booking-service:8082
+      strip_prefix: false
+    auth:
+      upstream: http://auth-service:8080
+      strip_prefix: false
+    payments:
+      upstream: http://payment-service:8083
+      strip_prefix: false
+    notifications:
+      upstream: http://notification-service:8085
+      strip_prefix: false

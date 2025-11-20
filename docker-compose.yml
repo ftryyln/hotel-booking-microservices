@@ -105,6 +105,14 @@ services:
       BOOKING_SERVICE_URL: http://booking-service:8082
       PAYMENT_SERVICE_URL: http://payment-service:8083
       AGGREGATE_TARGET_URL: http://hotel-service:8081
+      GATEWAY_MODE: proxy_all
+      GATEWAY_ROUTES_FILE: config/routes.yml
+      HEALTH_INTERVAL: 10s
+      UPSTREAM_TIMEOUT: 5s
+      UPSTREAM_RETRIES: 2
+      CIRCUIT_BREAKER_WINDOW: 30s
+      CIRCUIT_BREAKER_THRESHOLD: 0.5
+      CIRCUIT_BREAKER_COOLDOWN: 15s
     depends_on:
       - booking-service
       - payment-service
