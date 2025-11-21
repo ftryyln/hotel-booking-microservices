@@ -26,12 +26,16 @@ func main() {
 	cfg := config.Load()
 	log := logger.New()
 
-	db, err := database.NewPostgres(ctx, cfg.DatabaseURL)
+	db, err := database.NewGormPostgres(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("failed to connect to postgres", zap.Error(err))
 	}
 
-	repo := authrepo.NewPostgresRepository(db)
+	if err := authrepo.AutoMigrate(db); err != nil {
+		log.Fatal("failed to run migrations", zap.Error(err))
+	}
+
+	repo := authrepo.NewGormRepository(db)
 	issuer := authtoken.NewJWTIssuer(cfg.JWTSecret)
 	service := authuc.NewService(repo, issuer)
 	handler := authhttp.NewHandler(service, cfg.JWTSecret)

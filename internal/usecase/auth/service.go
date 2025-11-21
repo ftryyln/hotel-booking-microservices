@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +10,8 @@ import (
 	domain "github.com/ftryyln/hotel-booking-microservices/internal/domain/auth"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/errors"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/valueobject"
 )
 
 // Service coordinates registration/login use cases.
@@ -30,24 +31,19 @@ var allowedRoles = map[string]struct{}{
 
 // Register creates new user and issues tokens.
 func (s *Service) Register(ctx context.Context, req dto.RegisterRequest) (dto.AuthResponse, error) {
-	email := strings.ToLower(strings.TrimSpace(req.Email))
-	if !strings.Contains(email, "@") {
-		return dto.AuthResponse{}, errors.New("bad_request", "invalid email")
+	email, err := valueobject.NormalizeEmail(req.Email)
+	if err != nil {
+		return dto.AuthResponse{}, err
 	}
-	req.Email = email
 	if req.Password == "" {
 		return dto.AuthResponse{}, errors.New("bad_request", "password required")
 	}
-	if req.Role == "" {
-		req.Role = "customer"
+	role, err := valueobject.ParseRole(req.Role)
+	if err != nil {
+		return dto.AuthResponse{}, err
 	}
-	role := strings.ToLower(strings.TrimSpace(req.Role))
-	if _, ok := allowedRoles[role]; !ok {
-		return dto.AuthResponse{}, errors.New("bad_request", "invalid role")
-	}
-	req.Role = role
 
-	if _, err := s.repo.FindByEmail(ctx, req.Email); err == nil {
+	if _, err := s.repo.FindByEmail(ctx, email); err == nil {
 		return dto.AuthResponse{}, errors.New("conflict", "email already used")
 	}
 
@@ -58,9 +54,9 @@ func (s *Service) Register(ctx context.Context, req dto.RegisterRequest) (dto.Au
 
 	user := domain.User{
 		ID:        uuid.New(),
-		Email:     req.Email,
+		Email:     email,
 		Password:  string(hash),
-		Role:      req.Role,
+		Role:      string(role),
 		CreatedAt: time.Now().UTC(),
 	}
 
@@ -73,7 +69,10 @@ func (s *Service) Register(ctx context.Context, req dto.RegisterRequest) (dto.Au
 
 // Login verifies credentials.
 func (s *Service) Login(ctx context.Context, req dto.LoginRequest) (dto.AuthResponse, error) {
-	email := strings.ToLower(strings.TrimSpace(req.Email))
+	email, err := valueobject.NormalizeEmail(req.Email)
+	if err != nil {
+		return dto.AuthResponse{}, errors.New("unauthorized", "invalid credentials")
+	}
 	user, err := s.repo.FindByEmail(ctx, email)
 	if err != nil {
 		return dto.AuthResponse{}, errors.New("unauthorized", "invalid credentials")
@@ -87,34 +86,30 @@ func (s *Service) Login(ctx context.Context, req dto.LoginRequest) (dto.AuthResp
 }
 
 // Me returns profile info.
-func (s *Service) Me(ctx context.Context, id uuid.UUID) (dto.ProfileResponse, error) {
+func (s *Service) Me(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return dto.ProfileResponse{}, errors.New("not_found", "user not found")
+		return domain.User{}, errors.New("not_found", "user not found")
 	}
-	return dto.ProfileResponse{ID: user.ID.String(), Email: user.Email, Role: user.Role}, nil
+	return user, nil
 }
 
 // List returns all users (admin use).
-func (s *Service) List(ctx context.Context) ([]dto.ProfileResponse, error) {
-	users, err := s.repo.List(ctx)
+func (s *Service) List(ctx context.Context, opts query.Options) ([]domain.User, error) {
+	users, err := s.repo.List(ctx, opts.Normalize(50))
 	if err != nil {
 		return nil, err
 	}
-	var resp []dto.ProfileResponse
-	for _, u := range users {
-		resp = append(resp, dto.ProfileResponse{ID: u.ID.String(), Email: u.Email, Role: u.Role})
-	}
-	return resp, nil
+	return users, nil
 }
 
 // Get fetches a user by id.
-func (s *Service) Get(ctx context.Context, id uuid.UUID) (dto.ProfileResponse, error) {
+func (s *Service) Get(ctx context.Context, id uuid.UUID) (domain.User, error) {
 	user, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		return dto.ProfileResponse{}, errors.New("not_found", "user not found")
+		return domain.User{}, errors.New("not_found", "user not found")
 	}
-	return dto.ProfileResponse{ID: user.ID.String(), Email: user.Email, Role: user.Role}, nil
+	return user, nil
 }
 
 func (s *Service) issueTokens(ctx context.Context, user domain.User) (dto.AuthResponse, error) {

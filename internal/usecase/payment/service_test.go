@@ -11,12 +11,13 @@ import (
 	domain "github.com/ftryyln/hotel-booking-microservices/internal/domain/payment"
 	"github.com/ftryyln/hotel-booking-microservices/internal/usecase/payment"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/valueobject"
 )
 
 func TestHandleWebhook(t *testing.T) {
 	paymentID := uuid.New()
 	repo := &paymentRepoStub{store: map[uuid.UUID]domain.Payment{
-		paymentID: {ID: paymentID, BookingID: uuid.New()},
+		paymentID: {ID: paymentID, BookingID: uuid.New(), Status: string(valueobject.PaymentPending)},
 	}}
 	provider := &providerStub{signatureValid: true}
 	updater := &bookingUpdaterStub{}

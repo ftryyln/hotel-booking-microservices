@@ -8,9 +8,11 @@ import (
 
 	domain "github.com/ftryyln/hotel-booking-microservices/internal/domain/booking"
 	hdomain "github.com/ftryyln/hotel-booking-microservices/internal/domain/hotel"
+	"github.com/ftryyln/hotel-booking-microservices/internal/usecase/booking/assembler"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/errors"
-	"github.com/ftryyln/hotel-booking-microservices/pkg/utils"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/valueobject"
 )
 
 // Service handles booking lifecycle.
@@ -26,17 +28,16 @@ func NewService(repo domain.Repository, hotels hdomain.Repository, payments doma
 }
 
 func (s *Service) CreateBooking(ctx context.Context, req dto.BookingRequest) (dto.BookingResponse, error) {
-	nights, err := utils.NightsBetween(req.CheckIn, req.CheckOut)
+	dateRange, err := valueobject.NewDateRange(req.CheckIn, req.CheckOut)
 	if err != nil {
-		return dto.BookingResponse{}, errors.New("bad_request", "invalid dates")
+		return dto.BookingResponse{}, err
 	}
-
-	roomTypeID, err := uuid.Parse(req.RoomTypeID)
+	nights := dateRange.Nights()
+	rtID, err := uuid.Parse(req.RoomTypeID)
 	if err != nil {
 		return dto.BookingResponse{}, errors.New("bad_request", "invalid room type id")
 	}
-
-	rt, err := s.hotels.GetRoomType(ctx, roomTypeID)
+	rt, err := s.hotels.GetRoomType(ctx, rtID)
 	if err != nil {
 		return dto.BookingResponse{}, errors.New("not_found", "room type not found")
 	}
@@ -54,10 +55,10 @@ func (s *Service) CreateBooking(ctx context.Context, req dto.BookingRequest) (dt
 	booking := domain.Booking{
 		ID:          uuid.New(),
 		UserID:      userID,
-		RoomTypeID:  rt.ID,
+		RoomTypeID:  rtID,
 		CheckIn:     req.CheckIn,
 		CheckOut:    req.CheckOut,
-		Status:      domain.StatusPendingPayment,
+		Status:      string(valueobject.StatusPendingPayment),
 		Guests:      guests,
 		TotalPrice:  float64(nights) * rt.BasePrice,
 		TotalNights: nights,
@@ -74,15 +75,7 @@ func (s *Service) CreateBooking(ctx context.Context, req dto.BookingRequest) (dt
 
 	_ = s.notifier.Notify(ctx, "booking_created", booking.ID.String())
 
-	resp := toDTO(booking)
-	resp.Payment = &dto.PaymentResponse{
-		ID:         paymentResult.ID.String(),
-		Status:     paymentResult.Status,
-		Provider:   paymentResult.Provider,
-		PaymentURL: paymentResult.PaymentURL,
-	}
-
-	return resp, nil
+	return assembler.ToResponse(booking, paymentResult), nil
 }
 
 func (s *Service) CancelBooking(ctx context.Context, id uuid.UUID) error {
@@ -90,10 +83,10 @@ func (s *Service) CancelBooking(ctx context.Context, id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
-	if booking.Status != domain.StatusPendingPayment {
+	if booking.Status != string(valueobject.StatusPendingPayment) {
 		return errors.New("bad_request", "cannot cancel at this stage")
 	}
-	return s.repo.UpdateStatus(ctx, id, domain.StatusCancelled)
+	return s.repo.UpdateStatus(ctx, id, string(valueobject.StatusCancelled))
 }
 
 func (s *Service) ApplyStatus(ctx context.Context, id uuid.UUID, status string) error {
@@ -104,16 +97,18 @@ func (s *Service) ApplyStatus(ctx context.Context, id uuid.UUID, status string) 
 		}
 		return err
 	}
-	if bk.Status == domain.StatusCancelled || bk.Status == domain.StatusCompleted {
-		return errors.New("bad_request", "booking cannot be updated from this status")
+	current, err := valueobject.ValidateBookingStatus(bk.Status)
+	if err != nil {
+		return err
 	}
-	if status == domain.StatusConfirmed && bk.Status != domain.StatusPendingPayment {
-		return errors.New("bad_request", "cannot confirm unless payment is pending")
+	target, err := valueobject.ValidateBookingStatus(status)
+	if err != nil {
+		return err
 	}
-	if status == domain.StatusCheckedIn && bk.Status != domain.StatusConfirmed {
-		return errors.New("bad_request", "cannot check in unless confirmed")
+	if err := current.CanTransition(target); err != nil {
+		return err
 	}
-	return s.repo.UpdateStatus(ctx, id, status)
+	return s.repo.UpdateStatus(ctx, id, string(target))
 }
 
 func (s *Service) Checkpoint(ctx context.Context, id uuid.UUID, action string) error {
@@ -134,12 +129,12 @@ func (s *Service) Checkpoint(ctx context.Context, id uuid.UUID, action string) e
 		if bk.Status != domain.StatusConfirmed {
 			return errors.New("bad_request", "booking must be confirmed before check-in")
 		}
-		status = domain.StatusCheckedIn
+		status = string(valueobject.StatusCheckedIn)
 	case "complete":
-		if bk.Status != domain.StatusCheckedIn {
+		if bk.Status != string(valueobject.StatusCheckedIn) {
 			return errors.New("bad_request", "booking must be checked-in before completion")
 		}
-		status = domain.StatusCompleted
+		status = string(valueobject.StatusCompleted)
 	default:
 		return errors.New("bad_request", "unknown checkpoint action")
 	}
@@ -154,29 +149,17 @@ func (s *Service) GetBooking(ctx context.Context, id uuid.UUID) (dto.BookingResp
 		}
 		return dto.BookingResponse{}, err
 	}
-	return toDTO(b), nil
+	return assembler.ToResponse(b, domain.PaymentResult{}), nil
 }
 
-func (s *Service) ListBookings(ctx context.Context) ([]dto.BookingResponse, error) {
-	bks, err := s.repo.List(ctx)
+func (s *Service) ListBookings(ctx context.Context, opts query.Options) ([]dto.BookingResponse, error) {
+	bks, err := s.repo.List(ctx, opts.Normalize(50))
 	if err != nil {
 		return nil, err
 	}
 	resp := make([]dto.BookingResponse, 0, len(bks))
 	for _, b := range bks {
-		resp = append(resp, toDTO(b))
+		resp = append(resp, assembler.ToResponse(b, domain.PaymentResult{}))
 	}
 	return resp, nil
-}
-
-func toDTO(b domain.Booking) dto.BookingResponse {
-	return dto.BookingResponse{
-		ID:          b.ID.String(),
-		Status:      b.Status,
-		Guests:      b.Guests,
-		TotalNights: b.TotalNights,
-		TotalPrice:  b.TotalPrice,
-		CheckIn:     b.CheckIn,
-		CheckOut:    b.CheckOut,
-	}
 }

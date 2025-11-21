@@ -25,12 +25,16 @@ func main() {
 	cfg := config.Load()
 	log := logger.New()
 
-	db, err := database.NewPostgres(ctx, cfg.DatabaseURL)
+	db, err := database.NewGormPostgres(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("failed to connect to postgres", zap.Error(err))
 	}
 
-	repo := hotelrepo.NewPostgresRepository(db)
+	if err := hotelrepo.AutoMigrate(db); err != nil {
+		log.Fatal("failed to run migrations", zap.Error(err))
+	}
+
+	repo := hotelrepo.NewGormRepository(db)
 	service := hoteluc.NewService(repo)
 	handler := hotelhttp.NewHandler(service, cfg.JWTSecret)
 

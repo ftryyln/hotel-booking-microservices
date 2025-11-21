@@ -3,14 +3,17 @@ package authhttp
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
 	uc "github.com/ftryyln/hotel-booking-microservices/internal/usecase/auth"
+	"github.com/ftryyln/hotel-booking-microservices/internal/usecase/auth/assembler"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
 	pkgErrors "github.com/ftryyln/hotel-booking-microservices/pkg/errors"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/middleware"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/utils"
 )
 
@@ -104,11 +107,12 @@ func (h *Handler) me(w http.ResponseWriter, r *http.Request) {
 		writeError(w, pkgErrors.New("bad_request", "invalid id"))
 		return
 	}
-	resp, err := h.service.Me(r.Context(), userID)
+	user, err := h.service.Me(r.Context(), userID)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
 	}
+	resp := assembler.ToProfile(user)
 	resource := utils.NewResource(resp.ID, "user", "/auth/me/"+resp.ID, resp)
 	utils.Respond(w, http.StatusOK, "profile retrieved", resource)
 }
@@ -125,14 +129,16 @@ func (h *Handler) listUsers(w http.ResponseWriter, r *http.Request) {
 		writeError(w, pkgErrors.New("forbidden", "admin only"))
 		return
 	}
-	resp, err := h.service.List(r.Context())
+	opts := parseQueryOptions(r)
+	users, err := h.service.List(r.Context(), opts)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
 	}
 	var resources []utils.Resource
-	for _, u := range resp {
-		resources = append(resources, utils.NewResource(u.ID, "user", "/auth/users/"+u.ID, u))
+	for _, u := range users {
+		dto := assembler.ToProfile(u)
+		resources = append(resources, utils.NewResource(dto.ID, "user", "/auth/users/"+dto.ID, dto))
 	}
 	utils.RespondWithCount(w, http.StatusOK, "users listed", resources, len(resources))
 }
@@ -158,12 +164,13 @@ func (h *Handler) getUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, pkgErrors.New("forbidden", "insufficient role"))
 		return
 	}
-	resp, err := h.service.Get(r.Context(), userID)
+	user, err := h.service.Get(r.Context(), userID)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
 	}
-	resource := utils.NewResource(resp.ID, "user", "/auth/users/"+resp.ID, resp)
+	dto := assembler.ToProfile(user)
+	resource := utils.NewResource(dto.ID, "user", "/auth/users/"+dto.ID, dto)
 	utils.Respond(w, http.StatusOK, "user retrieved", resource)
 }
 
@@ -176,4 +183,10 @@ func isAdmin(r *http.Request) bool {
 		return claims.Role == "admin"
 	}
 	return false
+}
+
+func parseQueryOptions(r *http.Request) query.Options {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	return query.Options{Limit: limit, Offset: offset}
 }

@@ -29,13 +29,20 @@ func main() {
 	cfg := config.Load()
 	log := logger.New()
 
-	db, err := database.NewPostgres(ctx, cfg.DatabaseURL)
+	db, err := database.NewGormPostgres(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("failed to connect to postgres", zap.Error(err))
 	}
 
-	repo := bookingrepo.NewPostgresRepository(db)
-	hRepo := hotelrepo.NewPostgresRepository(db)
+	if err := bookingrepo.AutoMigrate(db); err != nil {
+		log.Fatal("failed to run booking migrations", zap.Error(err))
+	}
+	if err := hotelrepo.AutoMigrate(db); err != nil {
+		log.Fatal("failed to run hotel migrations", zap.Error(err))
+	}
+
+	repo := bookingrepo.NewGormRepository(db)
+	hRepo := hotelrepo.NewGormRepository(db)
 	paymentClient := bookingpayment.NewHTTPGateway(cfg.PaymentServiceURL)
 	notifier := bookingnotification.NewHTTPGateway(cfg.NotificationURL)
 	service := bookinguc.NewService(repo, hRepo, paymentClient, notifier)

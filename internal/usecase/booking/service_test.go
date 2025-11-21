@@ -13,6 +13,8 @@ import (
 	hdomain "github.com/ftryyln/hotel-booking-microservices/internal/domain/hotel"
 	"github.com/ftryyln/hotel-booking-microservices/internal/usecase/booking"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/valueobject"
 )
 
 func TestCreateBooking(t *testing.T) {
@@ -77,6 +79,20 @@ func TestCreateBooking(t *testing.T) {
 	}
 }
 
+func TestApplyStatusInvalidTransition(t *testing.T) {
+	repo := &bookingRepoStub{store: map[uuid.UUID]domain.Booking{}}
+	hotelRepo := &hotelRepoStub{roomType: hdomain.RoomType{ID: uuid.New(), BasePrice: 500000}}
+	payment := &paymentGatewayStub{}
+	notifier := &notificationGatewayStub{}
+	service := booking.NewService(repo, hotelRepo, payment, notifier)
+
+	id := uuid.New()
+	repo.store[id] = domain.Booking{ID: id, Status: string(valueobject.StatusCancelled)}
+
+	err := service.ApplyStatus(context.Background(), id, string(valueobject.StatusConfirmed))
+	require.Error(t, err)
+}
+
 // stubs
 
 type bookingRepoStub struct {
@@ -105,7 +121,7 @@ func (b *bookingRepoStub) UpdateStatus(ctx context.Context, id uuid.UUID, status
 	return errors.New("not found")
 }
 
-func (b *bookingRepoStub) List(ctx context.Context) ([]domain.Booking, error) {
+func (b *bookingRepoStub) List(ctx context.Context, _ query.Options) ([]domain.Booking, error) {
 	var out []domain.Booking
 	for _, v := range b.store {
 		out = append(out, v)
@@ -118,13 +134,15 @@ type hotelRepoStub struct {
 	err      error
 }
 
-func (h *hotelRepoStub) CreateHotel(context.Context, hdomain.Hotel) error       { return nil }
-func (h *hotelRepoStub) ListHotels(context.Context) ([]hdomain.Hotel, error)    { return nil, nil }
+func (h *hotelRepoStub) CreateHotel(context.Context, hdomain.Hotel) error { return nil }
+func (h *hotelRepoStub) ListHotels(context.Context, query.Options) ([]hdomain.Hotel, error) {
+	return nil, nil
+}
 func (h *hotelRepoStub) CreateRoomType(context.Context, hdomain.RoomType) error { return nil }
 func (h *hotelRepoStub) ListRoomTypes(context.Context, uuid.UUID) ([]hdomain.RoomType, error) {
 	return nil, nil
 }
-func (h *hotelRepoStub) ListAllRoomTypes(context.Context) ([]hdomain.RoomType, error) {
+func (h *hotelRepoStub) ListAllRoomTypes(context.Context, query.Options) ([]hdomain.RoomType, error) {
 	return []hdomain.RoomType{h.roomType}, h.err
 }
 func (h *hotelRepoStub) CreateRoom(context.Context, hdomain.Room) error { return nil }
@@ -134,7 +152,9 @@ func (h *hotelRepoStub) GetRoomType(ctx context.Context, id uuid.UUID) (hdomain.
 	}
 	return h.roomType, nil
 }
-func (h *hotelRepoStub) ListRooms(context.Context) ([]hdomain.Room, error) { return nil, nil }
+func (h *hotelRepoStub) ListRooms(context.Context, query.Options) ([]hdomain.Room, error) {
+	return nil, nil
+}
 func (h *hotelRepoStub) GetHotel(context.Context, uuid.UUID) (hdomain.Hotel, error) {
 	return hdomain.Hotel{}, nil
 }

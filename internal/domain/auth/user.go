@@ -5,15 +5,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
 )
 
 // User represents auth entity.
 type User struct {
-	ID        uuid.UUID `db:"id"`
-	Email     string    `db:"email"`
-	Password  string    `db:"password"`
-	Role      string    `db:"role"`
-	CreatedAt time.Time `db:"created_at"`
+	ID        uuid.UUID
+	Email     string
+	Password  string
+	Role      string
+	CreatedAt time.Time
 }
 
 // UserRepository persists users.
@@ -21,7 +23,7 @@ type UserRepository interface {
 	Create(ctx context.Context, user User) error
 	FindByEmail(ctx context.Context, email string) (User, error)
 	FindByID(ctx context.Context, id uuid.UUID) (User, error)
-	List(ctx context.Context) ([]User, error)
+	List(ctx context.Context, opts query.Options) ([]User, error)
 }
 
 // TokenIssuer issues JWT tokens.

@@ -28,12 +28,16 @@ func main() {
 	cfg := config.Load()
 	log := logger.New()
 
-	db, err := database.NewPostgres(ctx, cfg.DatabaseURL)
+	db, err := database.NewGormPostgres(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal("failed to connect to postgres", zap.Error(err))
 	}
 
-	repo := paymentrepo.NewPostgresRepository(db)
+	if err := paymentrepo.AutoMigrate(db); err != nil {
+		log.Fatal("failed to run migrations", zap.Error(err))
+	}
+
+	repo := paymentrepo.NewGormRepository(db)
 	provider := paymentprovider.NewXenditMockProvider(cfg.PaymentProviderKey)
 	statusClient := paymentbooking.NewHTTPStatusClient(cfg.BookingServiceURL)
 	service := paymentuc.NewService(repo, provider, statusClient)

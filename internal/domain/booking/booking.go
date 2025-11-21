@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
 )
 
 const (
@@ -17,23 +19,23 @@ const (
 
 // Booking aggregate.
 type Booking struct {
-	ID          uuid.UUID `db:"id"`
-	UserID      uuid.UUID `db:"user_id"`
-	RoomTypeID  uuid.UUID `db:"room_type_id"`
-	CheckIn     time.Time `db:"check_in"`
-	CheckOut    time.Time `db:"check_out"`
-	Status      string    `db:"status"`
-	Guests      int       `db:"guests"`
-	TotalPrice  float64   `db:"total_price"`
-	TotalNights int       `db:"total_nights"`
-	CreatedAt   time.Time `db:"created_at"`
+	ID          uuid.UUID
+	UserID      uuid.UUID
+	RoomTypeID  uuid.UUID
+	CheckIn     time.Time
+	CheckOut    time.Time
+	Status      string
+	Guests      int
+	TotalPrice  float64
+	TotalNights int
+	CreatedAt   time.Time
 }
 
 // Repository handles persistence.
 type Repository interface {
 	Create(ctx context.Context, b Booking) error
 	FindByID(ctx context.Context, id uuid.UUID) (Booking, error)
-	List(ctx context.Context) ([]Booking, error)
+	List(ctx context.Context, opts query.Options) ([]Booking, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
 }
 

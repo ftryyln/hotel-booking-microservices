@@ -3,6 +3,7 @@ package hotelhttp
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
 	pkgErrors "github.com/ftryyln/hotel-booking-microservices/pkg/errors"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/middleware"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/utils"
 )
 
@@ -102,7 +104,8 @@ func (h *Handler) createHotel(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} dto.ErrorResponse
 // @Router /hotels [get]
 func (h *Handler) listHotels(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.service.ListHotels(r.Context())
+	opts := parseQueryOptions(r)
+	resp, err := h.service.ListHotels(r.Context(), opts)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
@@ -128,7 +131,7 @@ func (h *Handler) getHotel(w http.ResponseWriter, r *http.Request) {
 		writeError(w, pkgErrors.New("bad_request", "invalid id"))
 		return
 	}
-	resp, err := h.service.GetHotel(r.Context(), id)
+	resp, err := h.service.GetHotel(r.Context(), id, query.Options{})
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
@@ -175,7 +178,8 @@ func (h *Handler) createRoomType(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} dto.RoomTypeResponse
 // @Router /room-types [get]
 func (h *Handler) listRoomTypes(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.service.ListRoomTypes(r.Context())
+	opts := parseQueryOptions(r)
+	resp, err := h.service.ListRoomTypes(r.Context(), opts)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
@@ -223,7 +227,8 @@ func (h *Handler) createRoom(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} dto.RoomResponse
 // @Router /rooms [get]
 func (h *Handler) listRooms(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.service.ListRooms(r.Context())
+	opts := parseQueryOptions(r)
+	resp, err := h.service.ListRooms(r.Context(), opts)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
@@ -243,4 +248,10 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeError(w http.ResponseWriter, err pkgErrors.APIError) {
 	utils.Respond(w, pkgErrors.StatusCode(err), err.Message, err)
+}
+
+func parseQueryOptions(r *http.Request) query.Options {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	return query.Options{Limit: limit, Offset: offset}
 }

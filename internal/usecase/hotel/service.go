@@ -9,6 +9,8 @@ import (
 	domain "github.com/ftryyln/hotel-booking-microservices/internal/domain/hotel"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/errors"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/valueobject"
 )
 
 // Service exposes hotel catalog operations.
@@ -21,12 +23,16 @@ func NewService(repo domain.Repository) *Service {
 }
 
 func (s *Service) CreateHotel(ctx context.Context, req dto.HotelRequest) (uuid.UUID, error) {
-	h := domain.Hotel{ID: uuid.New(), Name: req.Name, Description: req.Description, Address: req.Address}
+	name, addr, err := valueobject.ValidateHotel(req.Name, req.Address)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	h := domain.Hotel{ID: uuid.New(), Name: name, Description: req.Description, Address: addr}
 	return h.ID, s.repo.CreateHotel(ctx, h)
 }
 
-func (s *Service) ListHotels(ctx context.Context) ([]dto.HotelResponse, error) {
-	hotels, err := s.repo.ListHotels(ctx)
+func (s *Service) ListHotels(ctx context.Context, opts query.Options) ([]dto.HotelResponse, error) {
+	hotels, err := s.repo.ListHotels(ctx, opts.Normalize(50))
 	if err != nil {
 		return nil, err
 	}
@@ -55,6 +61,9 @@ func (s *Service) ListHotels(ctx context.Context) ([]dto.HotelResponse, error) {
 }
 
 func (s *Service) CreateRoomType(ctx context.Context, req dto.RoomTypeRequest) (uuid.UUID, error) {
+	if err := valueobject.RoomTypeSpec(req.Capacity, req.BasePrice); err != nil {
+		return uuid.Nil, err
+	}
 	rt := domain.RoomType{
 		ID:        uuid.New(),
 		HotelID:   uuid.MustParse(req.HotelID),
@@ -67,11 +76,20 @@ func (s *Service) CreateRoomType(ctx context.Context, req dto.RoomTypeRequest) (
 }
 
 func (s *Service) CreateRoom(ctx context.Context, req dto.RoomRequest) (uuid.UUID, error) {
-	room := domain.Room{ID: uuid.New(), RoomTypeID: uuid.MustParse(req.RoomTypeID), Number: req.Number, Status: req.Status}
+	status, err := valueobject.NormalizeRoomStatus(req.Status)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	room := domain.Room{
+		ID:         uuid.New(),
+		RoomTypeID: uuid.MustParse(req.RoomTypeID),
+		Number:     req.Number,
+		Status:     string(status),
+	}
 	return room.ID, s.repo.CreateRoom(ctx, room)
 }
 
-func (s *Service) GetHotel(ctx context.Context, id uuid.UUID) (dto.HotelResponse, error) {
+func (s *Service) GetHotel(ctx context.Context, id uuid.UUID, opts query.Options) (dto.HotelResponse, error) {
 	h, err := s.repo.GetHotel(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -99,8 +117,8 @@ func (s *Service) GetHotel(ctx context.Context, id uuid.UUID) (dto.HotelResponse
 	}, nil
 }
 
-func (s *Service) ListRoomTypes(ctx context.Context) ([]dto.RoomTypeResponse, error) {
-	rts, err := s.repo.ListAllRoomTypes(ctx)
+func (s *Service) ListRoomTypes(ctx context.Context, opts query.Options) ([]dto.RoomTypeResponse, error) {
+	rts, err := s.repo.ListAllRoomTypes(ctx, opts.Normalize(50))
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +136,8 @@ func (s *Service) ListRoomTypes(ctx context.Context) ([]dto.RoomTypeResponse, er
 	return resp, nil
 }
 
-func (s *Service) ListRooms(ctx context.Context) ([]dto.RoomResponse, error) {
-	rooms, err := s.repo.ListRooms(ctx)
+func (s *Service) ListRooms(ctx context.Context, opts query.Options) ([]dto.RoomResponse, error) {
+	rooms, err := s.repo.ListRooms(ctx, opts.Normalize(50))
 	if err != nil {
 		return nil, err
 	}

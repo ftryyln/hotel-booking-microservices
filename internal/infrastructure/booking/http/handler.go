@@ -3,6 +3,7 @@ package bookinghttp
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -11,6 +12,7 @@ import (
 	"github.com/ftryyln/hotel-booking-microservices/internal/usecase/booking"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/dto"
 	pkgErrors "github.com/ftryyln/hotel-booking-microservices/pkg/errors"
+	"github.com/ftryyln/hotel-booking-microservices/pkg/query"
 	"github.com/ftryyln/hotel-booking-microservices/pkg/utils"
 )
 
@@ -155,7 +157,8 @@ func (h *Handler) getStatus(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Router /bookings [get]
 func (h *Handler) listBookings(w http.ResponseWriter, r *http.Request) {
-	resp, err := h.service.ListBookings(r.Context())
+	opts := parseQueryOptions(r)
+	resp, err := h.service.ListBookings(r.Context(), opts)
 	if err != nil {
 		writeError(w, pkgErrors.FromError(err))
 		return
@@ -266,4 +269,10 @@ func parseDate(value string) (time.Time, error) {
 		return t, nil
 	}
 	return time.Parse("2006-01-02", value)
+}
+
+func parseQueryOptions(r *http.Request) query.Options {
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	return query.Options{Limit: limit, Offset: offset}
 }
