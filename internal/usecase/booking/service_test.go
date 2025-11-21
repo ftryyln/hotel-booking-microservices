@@ -115,6 +115,15 @@ func (b *bookingRepoStub) FindByID(ctx context.Context, id uuid.UUID) (domain.Bo
 	}
 	return bk, nil
 }
+func (b *bookingRepoStub) FindByUserID(ctx context.Context, userID uuid.UUID) ([]domain.Booking, error) {
+	var out []domain.Booking
+	for _, v := range b.store {
+		if v.UserID == userID {
+			out = append(out, v)
+		}
+	}
+	return out, nil
+}
 
 func (b *bookingRepoStub) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
 	if bk, ok := b.store[id]; ok {
@@ -131,6 +140,10 @@ func (b *bookingRepoStub) List(ctx context.Context, _ query.Options) ([]domain.B
 		out = append(out, v)
 	}
 	return out, nil
+}
+func (b *bookingRepoStub) Save(ctx context.Context, bk domain.Booking) error {
+	b.store[bk.ID] = bk
+	return nil
 }
 
 type hotelRepoStub struct {

@@ -18,10 +18,11 @@ func NewMoney(amount float64, currency string) (Money, error) {
 	if amount < 0 {
 		return Money{}, pkgErrors.New("bad_request", "amount cannot be negative")
 	}
-	if strings.TrimSpace(currency) == "" {
-		currency = "IDR" // default currency
+	cur := strings.TrimSpace(currency)
+	if cur == "" {
+		return Money{}, pkgErrors.New("bad_request", "currency cannot be empty")
 	}
-	return Money{Amount: amount, Currency: strings.ToUpper(strings.TrimSpace(currency))}, nil
+	return Money{Amount: amount, Currency: strings.ToUpper(cur)}, nil
 }
 
 
@@ -70,4 +71,3 @@ func (m Money) IsGreaterThan(other Money) bool {
 func (m Money) String() string {
 	return fmt.Sprintf("%.2f %s", m.Amount, m.Currency)
 }
-
