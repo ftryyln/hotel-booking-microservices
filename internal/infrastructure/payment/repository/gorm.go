@@ -21,6 +21,9 @@ func NewGormRepository(db *gorm.DB) *GormRepository { return &GormRepository{db:
 
 // AutoMigrate ensures schema is present.
 func AutoMigrate(db *gorm.DB) error {
+	if db.Migrator().HasTable(&paymentModel{}) {
+		return nil
+	}
 	return db.AutoMigrate(&paymentModel{})
 }
 

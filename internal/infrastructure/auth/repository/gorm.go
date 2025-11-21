@@ -24,6 +24,9 @@ func NewGormRepository(db *gorm.DB) *GormRepository {
 
 // AutoMigrate ensures users table exists.
 func AutoMigrate(db *gorm.DB) error {
+	if db.Migrator().HasTable(&userModel{}) {
+		return nil
+	}
 	return db.AutoMigrate(&userModel{})
 }
 

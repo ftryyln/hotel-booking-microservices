@@ -22,6 +22,9 @@ func NewGormRepository(db *gorm.DB) *GormRepository { return &GormRepository{db:
 
 // AutoMigrate ensures bookings table exists.
 func AutoMigrate(db *gorm.DB) error {
+	if db.Migrator().HasTable(&bookingModel{}) {
+		return nil
+	}
 	return db.AutoMigrate(&bookingModel{})
 }
 
