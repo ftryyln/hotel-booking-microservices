@@ -107,6 +107,12 @@ sequenceDiagram
     Notif-->>User: Send Email Confirmation
 ```
 
+**Flow summary**
+- User authenticates (JWT), then browses hotels/rooms via the gateway.
+- Booking service validates availability and creates a pending booking; payment service issues an invoice URL.
+- User pays through the provider; webhook validates signature, marks payment paid, and auto-confirms the booking.
+- Booking emits a notification; notification service emails/logs the confirmation to the user.
+
 ---
 
 ## 🚀 Tech Stack & Key Features
