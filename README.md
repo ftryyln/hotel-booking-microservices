@@ -245,11 +245,31 @@ Copy `.env.example` to `.env`:
 
 **Swagger covers:**
 - Auth `/register /login /me/{id}`
-- Hotel `/hotels /room-types /rooms`
+- Hotel `/hotels /room-types /rooms` (including full CRUD operations)
+  - `GET /hotels` - List all hotels
+  - `POST /hotels` - Create hotel (admin)
+  - `GET /hotels/{id}` - Get hotel by ID
+  - `PUT /hotels/{id}` - Update hotel (admin) ⭐ NEW
+  - `DELETE /hotels/{id}` - Delete hotel (admin) ⭐ NEW
+  - `GET /rooms` - List all rooms
+  - `POST /rooms` - Create room (admin)
+  - `GET /rooms/{id}` - Get room by ID ⭐ NEW
+  - `PUT /rooms/{id}` - Update room (admin) ⭐ NEW
+  - `DELETE /rooms/{id}` - Delete room (admin) ⭐ NEW
 - Booking `/bookings`, cancellation, checkpoint
+  - Auto-checkout via CronJob (daily at 10:00 AM) ⭐ NEW
 - Payment `/payments`, `/payments/webhook`
 - Notification `/notifications`
 - Gateway `/gateway/aggregate/bookings/{id}`
+
+### Auto-Checkout CronJob ⭐ NEW
+1. **Scheduler**: Runs daily at 10:00 AM (configurable via cron expression)
+2. **Process**: 
+   - Finds all bookings with `checkout_date = today` AND `status = checked_in`
+   - Automatically transitions them to `completed` status
+   - Publishes domain events for notification
+3. **Configuration**: Implemented in `booking-service` using `robfig/cron/v3`
+4. **Graceful Shutdown**: Scheduler stops cleanly when service terminates
 
 ---
 
@@ -276,8 +296,15 @@ make lint     # go vet ./...
 3. **Protected requests**: Gateway checks `Authorization: Bearer <token>`.
 
 ### Hotel Inventory
-1. Admin uses hotel service endpoints to populate inventory.
-2. Public clients list hotels/room types without auth.
+1. **Admin Operations** (requires JWT with admin role):
+   - Create, update, and delete hotels
+   - Create, update, and delete rooms
+   - Manage room types
+2. **Public Operations** (no auth required):
+   - List hotels and room types
+   - Get hotel details by ID
+   - Get room details by ID
+3. **Soft Delete**: Delete operations use soft delete (data retained with deleted_at timestamp)
 3. **Availability**: Booking service calls Hotel service for stock validation.
 
 ### Booking Lifecycle
