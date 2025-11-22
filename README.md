@@ -1,8 +1,9 @@
-# Hotel Booking Microservices Platform
+﻿# Hotel Booking Microservices Platform
 
 [![Go Version](https://img.shields.io/badge/Go-1.23-blue.svg)](https://golang.org/doc/go1.23)
 [![Architecture](https://img.shields.io/badge/Architecture-DDD%20%26%20Clean%20Arch-green.svg)](docs/architecture-review.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Postman](https://img.shields.io/badge/Postman-Collection-orange?logo=postman)](postman/Hotel-Booking-Microservices.postman_collection.json)
 
 > **A production-grade, backend-only hotel booking system demonstrating advanced Domain-Driven Design (DDD) and SOLID principles in Go.**
 
@@ -201,13 +202,13 @@ GET /auth/me/{user_id}
 Authorization: Bearer {token}
 ```
 
-#### Admin: List Users
+#### Admin: List Users (🔒 Admin Only)
 ```http
 GET /auth/users
 Authorization: Bearer {admin_token}
 ```
 
-#### Admin: Get User Detail
+#### Admin: Get User Detail (🔒 Admin Only)
 ```http
 GET /auth/users/{id}
 Authorization: Bearer {admin_token}
@@ -227,7 +228,7 @@ GET /hotels?limit=10&offset=0
 GET /hotels/{hotel_id}
 ```
 
-#### 6. Create Hotel (Admin Only) 🔒
+#### 6. Create Hotel (🔒 Admin Only)
 ```http
 POST /hotels
 Authorization: Bearer {admin_token}
@@ -240,7 +241,7 @@ Content-Type: application/json
 }
 ```
 
-#### 7. Update Hotel (Admin Only) 🔒 
+#### 7. Update Hotel (🔒 Admin Only)
 ```http
 PUT /hotels/{hotel_id}
 Authorization: Bearer {admin_token}
@@ -253,7 +254,7 @@ Content-Type: application/json
 }
 ```
 
-#### 8. Delete Hotel (Admin Only) 🔒 
+#### 8. Delete Hotel (🔒 Admin Only)
 ```http
 DELETE /hotels/{hotel_id}
 Authorization: Bearer {admin_token}
@@ -268,7 +269,7 @@ Authorization: Bearer {admin_token}
 GET /room-types?limit=10&offset=0
 ```
 
-#### 10. Create Room Type (Admin Only) 🔒
+#### 10. Create Room Type (🔒 Admin Only)
 ```http
 POST /room-types
 Authorization: Bearer {admin_token}
@@ -297,7 +298,7 @@ GET /rooms?limit=10&offset=0
 GET /rooms/{room_id}
 ```
 
-#### 13. Create Room (Admin Only) 🔒
+#### 13. Create Room (🔒 Admin Only)
 ```http
 POST /rooms
 Authorization: Bearer {admin_token}
@@ -310,7 +311,7 @@ Content-Type: application/json
 }
 ```
 
-#### 14. Update Room (Admin Only) 🔒 
+#### 14. Update Room (🔒 Admin Only)
 ```http
 PUT /rooms/{room_id}
 Authorization: Bearer {admin_token}
@@ -322,7 +323,7 @@ Content-Type: application/json
 }
 ```
 
-#### 15. Delete Room (Admin Only) 🔒 
+#### 15. Delete Room (🔒 Admin Only)
 ```http
 DELETE /rooms/{room_id}
 Authorization: Bearer {admin_token}
@@ -345,13 +346,13 @@ Content-Type: application/json
 }
 ```
 
-#### 17. List Bookings 🔒
+#### 17. List Bookings
 ```http
 GET /bookings?limit=10&offset=0
 Authorization: Bearer {token}
 ```
 
-#### 18. Get Booking by ID 🔒
+#### 18. Get Booking by ID
 ```http
 GET /bookings/{booking_id}
 Authorization: Bearer {token}
@@ -363,29 +364,51 @@ POST /bookings/{booking_id}/cancel
 Authorization: Bearer {token}
 ```
 
-#### 20. Check-in Booking 🔒
+#### 20. Get Booking Status
 ```http
-POST /bookings/{booking_id}/checkin
+GET /bookings/{booking_id}/status
 Authorization: Bearer {token}
+```
+
+#### 21. Change Booking Status (🔒 Admin Only)
+```http
+POST /bookings/{booking_id}/status
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "status": "confirmed"
+}
+```
+
+#### 22. Booking Checkpoint (workflow action)
+```http
+POST /bookings/{booking_id}/checkpoint
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "action": "check_in" // or other supported actions
+}
 ```
 
 ---
 
 ### Payment Endpoints
 
-#### Admin: Get Payment by ID
+#### Admin: Get Payment by ID (🔒 Admin Only)
 ```http
 GET /payments/{payment_id}
 Authorization: Bearer {admin_token}
 ```
 
-#### 21. Get Payment by Booking ID 🔒
+#### 23. Get Payment by Booking ID
 ```http
 GET /payments/by-booking/{booking_id}
 Authorization: Bearer {token}
 ```
 
-#### 22. Payment Webhook (Provider Callback)
+#### 24. Payment Webhook (Provider Callback)
 ```http
 POST /payments/webhook
 Content-Type: application/json
@@ -397,13 +420,14 @@ Content-Type: application/json
 }
 ```
 
-#### 23. Refund Payment (Admin Only) 🔒
+#### 25. Refund Payment (🔒 Admin Only)
 ```http
-POST /payments/{payment_id}/refund
+POST /payments/refund
 Authorization: Bearer {admin_token}
 Content-Type: application/json
 
 {
+  "payment_id": "{payment_id}",
   "reason": "Customer request"
 }
 ```
@@ -412,29 +436,26 @@ Content-Type: application/json
 
 ### Notification Endpoints
 
-#### 24. Send Notification 🔒
+#### 26. Send Notification
 ```http
 POST /notifications
 Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "user_id": "{user_id}",
   "type": "booking_confirmed",
-  "message": "Your booking has been confirmed",
-  "metadata": {
-    "booking_id": "{booking_id}"
-  }
+  "target": "user@example.com",
+  "message": "Your booking has been confirmed"
 }
 ```
 
-#### 25. List Notifications 🔒
+#### 27. List Notifications
 ```http
 GET /notifications?limit=10&offset=0
 Authorization: Bearer {token}
 ```
 
-#### 26. Get Notification by ID 🔒
+#### 28. Get Notification by ID
 ```http
 GET /notifications/{notification_id}
 Authorization: Bearer {token}
@@ -444,7 +465,7 @@ Authorization: Bearer {token}
 
 ### Gateway Aggregation Endpoint
 
-#### 27. Get Booking Aggregate 🔒
+#### 29. Get Booking Aggregate
 ```http
 GET /gateway/aggregate/bookings/{booking_id}
 Authorization: Bearer {token}
@@ -455,9 +476,8 @@ Response: Combined data from booking, payment, and hotel services
 ---
 
 ### Legend
-- 🔒 = Requires Authentication (JWT Bearer Token)
--  = Newly implemented endpoint
-- **Admin Only** = Requires `role: "admin"` in JWT claims
+- Requires Authentication = JWT Bearer Token
+- 🔒 Admin Only = Requires `role: "admin"` in JWT claims
 
 ### Auto-Checkout Feature 
 - **Trigger**: Automatic CronJob (daily at 10:00 AM)
@@ -466,7 +486,7 @@ Response: Combined data from booking, payment, and hotel services
 
 ---
 
-## �📂 Repository Layout
+## 📂 Repository Layout
 
 ```
 cmd/<service>/           # each service entry point (auth-service, booking-service, etc.)
@@ -626,7 +646,7 @@ make lint     # go vet ./...
 ### Payment + Refund
 1. `POST /payments`: Initiates payment via mock provider, returns URL.
 2. `POST /payments/webhook`: Validates HMAC, updates payment status `paid`, auto-confirms booking.
-3. `POST /payments/{id}/refund`: Records refund, updates status.
+3. `POST /payments/refund`: Records refund, updates status.
 
 ### Notifications
 1. Triggered by Booking Confirmed or Payment Paid events.
@@ -636,210 +656,34 @@ make lint     # go vet ./...
 
 ## 📝 Complete API Reference (Manual / Postman)
 
-Use the following `curl` commands to test the entire system. Ensure you have `jq` installed for pretty printing (optional).
+Only used to simulate payment webhook (other endpoints are covered in the tester reference above).
 
-### 1. Authentication
+### Simulate Webhook (Mark Paid)
 
-**Register Admin**
+**Bash**
 ```bash
-curl -X POST http://localhost:8088/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "Secret123!", "role": "admin"}'
-```
-
-**Register Customer**
-```bash
-curl -X POST http://localhost:8088/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "customer@example.com", "password": "Secret123!", "role": "customer"}'
-```
-
-**Login (Save the token!)**
-```bash
-curl -X POST http://localhost:8088/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "Secret123!"}'
-# Export token for subsequent requests
-export TOKEN="<paste_access_token_here>"
-```
-
-**Get Current Profile**
-```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8088/api/v1/auth/me/<user_id>
-```
-
-**List Users (Admin Only)**
-```bash
-curl -H "Authorization: Bearer $TOKEN" "http://localhost:8088/api/v1/auth/users?limit=10&offset=0"
-```
-
----
-
-### 2. Hotel Management
-
-**Create Hotel (Admin)**
-```bash
-curl -X POST http://localhost:8088/api/v1/hotels \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Grand Hotel",
-    "description": "Luxury stay",
-    "address": "123 Main St"
-  }'
-```
-
-**List Hotels**
-```bash
-curl "http://localhost:8088/api/v1/hotels?limit=10"
-```
-
-**Create Room Type (Admin)**
-```bash
-curl -X POST http://localhost:8088/api/v1/room-types \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "hotel_id": "<hotel_uuid>",
-    "name": "Deluxe Suite",
-    "capacity": 2,
-    "base_price": 1500000,
-    "amenities": "Wifi, AC, Breakfast"
-  }'
-```
-
-**Create Room (Admin)**
-```bash
-curl -X POST http://localhost:8088/api/v1/rooms \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "room_type_id": "<room_type_uuid>",
-    "number": "101",
-    "status": "available"
-  }'
-```
-
----
-
-### 3. Booking Operations
-
-**Create Booking**
-```bash
-curl -X POST http://localhost:8088/api/v1/bookings \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "<user_uuid>",
-    "room_type_id": "<room_type_uuid>",
-    "check_in": "2025-12-20",
-    "check_out": "2025-12-23",
-    "guests": 2
-  }'
-```
-Response includes the booking plus embedded payment info (id, status, provider, payment_url).
-
-**List Bookings**
-```bash
-curl -H "Authorization: Bearer $TOKEN" "http://localhost:8088/api/v1/bookings?limit=10"
-```
-
-**Get Booking Detail**
-```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8088/api/v1/bookings/<booking_uuid>
-```
-
-**Cancel Booking**
-```bash
-curl -X POST http://localhost:8088/api/v1/bookings/<booking_uuid>/cancel \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**Check-in Guest**
-```bash
-curl -X POST http://localhost:8088/api/v1/bookings/<booking_uuid>/checkpoint \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "check_in"}'
-```
-
----
-
-### 4. Payments
-
-**Initiate Payment**
-```bash
-curl -X POST http://localhost:8088/api/v1/payments \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "booking_id": "<booking_uuid>",
-    "amount": 4500000,
-    "currency": "IDR",
-    "provider": "xendit"
-  }'
-```
-
-**Simulate Webhook (Mark Paid)**
-```bash
-# Calculate signature first (HMAC-SHA256 of payload with key 'sandbox-key')
 PAYLOAD='{"payment_id":"<payment_uuid>","status":"paid"}'
-SIG=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "sandbox-key" -hex | awk '{print $2}')
-
-# PowerShell
-$payload = '{"payment_id":"de236eb3-77c8-4ab2-82d6-5d9bee264441","status":"paid"}'
-$key     = 'sandbox-key'   # PAYMENT_PROVIDER_KEY
-
-$hmac   = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($key))
-$bytes  = $hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($payload))
-$sig    = -join ($bytes | ForEach-Object { $_.ToString('x2') })
-
-$sig  # hex signature
+SIG=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$PAYMENT_PROVIDER_KEY" -hex | awk '{print $2}')
 
 curl -X POST http://localhost:8088/api/v1/payments/webhook \
   -H "Content-Type: application/json" \
   -d "{\"payment_id\":\"<payment_uuid>\",\"status\":\"paid\",\"signature\":\"$SIG\"}"
 ```
 
-**Get Payment by Booking**
-```bash
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8088/api/v1/payments/by-booking/<booking_uuid>
+**PowerShell**
+```powershell
+$payload = '{"payment_id":"<payment_uuid>","status":"paid"}'
+$key     = $env:PAYMENT_PROVIDER_KEY
+$hmac    = [System.Security.Cryptography.HMACSHA256]::new([Text.Encoding]::UTF8.GetBytes($key))
+$bytes   = $hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($payload))
+$sig     = -join ($bytes | ForEach-Object { $_.ToString('x2') })
+
+curl -X POST http://localhost:8088/api/v1/payments/webhook `
+  -H "Content-Type: application/json" `
+  -d "{`"payment_id`":`"<payment_uuid>`",`"status`":`"paid`",`"signature`":`"$sig`"}"
 ```
 
-**Refund Payment**
-```bash
-curl -X POST http://localhost:8088/api/v1/payments/refund \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "payment_id": "<payment_uuid>",
-    "reason": "Customer request"
-  }'
-```
-
----
-
-### 5. Notifications
-
-**List Notifications**
-```bash
-curl http://localhost:8088/api/v1/notifications?limit=10
-```
-
-**Send Manual Notification (Debug)**
-```bash
-curl -X POST http://localhost:8088/api/v1/notifications \
-  -H "Content-Type: application/json" \
-  -d '{
-    "recipient": "user@example.com",
-    "subject": "Test",
-    "message": "Hello World",
-    "type": "email"
-  }'
-```
-
----
-
+> Note: use the same `PAYMENT_PROVIDER_KEY` as the service (default `sandbox-key`).
 ## 📋 Makefile Cheat Sheet
 
 | Command        | Description                                 |
