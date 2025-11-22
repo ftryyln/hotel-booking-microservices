@@ -32,8 +32,8 @@ The collection uses **Collection Variables** for dynamic data:
    - Run "Create Hotel" → hotel_id auto-saved
    - Run "Create Room Type" → room_type_id auto-saved
    - Run "Create Room" → room_id auto-saved
-   - Test "Update Hotel" ⭐ NEW
-   - Test "Update Room" ⭐ NEW
+   - Test "Update Hotel" 
+   - Test "Update Room" 
 
 3. **Booking Flow** (Folder 5, use Customer token)
    - Run "Create Booking" → booking_id auto-saved
@@ -59,8 +59,8 @@ The collection uses **Collection Variables** for dynamic data:
 - List Hotels (Public)
 - Get Hotel by ID (Public)
 - Create Hotel (Admin) 🔒
-- **Update Hotel (Admin) 🔒 ⭐ NEW**
-- **Delete Hotel (Admin) 🔒 ⭐ NEW**
+- **Update Hotel (Admin) 🔒 **
+- **Delete Hotel (Admin) 🔒 **
 
 ### 3. Room Type Management (2 endpoints)
 - List Room Types (Public)
@@ -68,10 +68,10 @@ The collection uses **Collection Variables** for dynamic data:
 
 ### 4. Room Management (5 endpoints)
 - List Rooms (Public)
-- **Get Room by ID (Public) ⭐ NEW**
+- **Get Room by ID (Public) **
 - Create Room (Admin) 🔒
-- **Update Room (Admin) 🔒 ⭐ NEW**
-- **Delete Room (Admin) 🔒 ⭐ NEW**
+- **Update Room (Admin) 🔒 **
+- **Delete Room (Admin) 🔒 **
 
 ### 5. Booking Management (5 endpoints)
 - Create Booking 🔒
@@ -127,9 +127,9 @@ if (pm.response.code === 200) {
 
 This means you don't need to manually copy-paste IDs between requests!
 
-## ⭐ New Features Highlighted
+##  Features Highlighted
 
-All newly implemented CRUD endpoints are marked with **⭐ NEW**:
+All newly implemented CRUD endpoints are marked with ****:
 - Update Hotel
 - Delete Hotel (Soft Delete)
 - Get Room by ID

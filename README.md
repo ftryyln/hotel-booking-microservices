@@ -394,9 +394,31 @@ Content-Type: application/json
 
 ### Notification Endpoints
 
-#### 24. List Notifications 🔒
+#### 24. Send Notification 🔒
+```http
+POST /notifications
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "user_id": "{user_id}",
+  "type": "booking_confirmed",
+  "message": "Your booking has been confirmed",
+  "metadata": {
+    "booking_id": "{booking_id}"
+  }
+}
+```
+
+#### 25. List Notifications 🔒
 ```http
 GET /notifications?limit=10&offset=0
+Authorization: Bearer {token}
+```
+
+#### 26. Get Notification by ID 🔒
+```http
+GET /notifications/{notification_id}
 Authorization: Bearer {token}
 ```
 
@@ -404,7 +426,7 @@ Authorization: Bearer {token}
 
 ### Gateway Aggregation Endpoint
 
-#### 25. Get Booking Aggregate 🔒
+#### 27. Get Booking Aggregate 🔒
 ```http
 GET /gateway/aggregate/bookings/{booking_id}
 Authorization: Bearer {token}
