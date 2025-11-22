@@ -94,7 +94,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"customer\"\n}"
+                            "raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"Secret123!\",\n  \"role\": \"customer\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/auth/register",
