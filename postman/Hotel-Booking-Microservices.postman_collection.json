@@ -1,0 +1,922 @@
+{
+	"info": {
+		"_postman_id": "hotel-booking-microservices-collection",
+		"name": "Hotel Booking Microservices API",
+		"description": "Complete API collection for Hotel Booking Microservices system with full CRUD operations, payment integration, and auto-checkout feature.\n\n**Features:**\n- Authentication & Authorization (JWT)\n- Hotel & Room Management (Full CRUD)\n- Booking Lifecycle (Create, Confirm, Check-in, Complete, Cancel)\n- Payment Integration (Xendit Mock)\n- Notifications\n- Auto-Checkout CronJob\n\n**Base URL:** http://localhost:8088/api/v1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8088/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "hotel_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "room_type_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "room_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "booking_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "payment_id",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "Register Customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('user_id', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"customer\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new customer account"
+					},
+					"response": []
+				},
+				{
+					"name": "Register Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('admin_id', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPass123!\",\n  \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "register"]
+						},
+						"description": "Register a new admin account"
+					},
+					"response": []
+				},
+				{
+					"name": "Login Customer",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.access_token) {",
+									"        pm.collectionVariables.set('access_token', response.data.access_token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login as customer and get JWT token"
+					},
+					"response": []
+				},
+				{
+					"name": "Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.access_token) {",
+									"        pm.collectionVariables.set('admin_token', response.data.access_token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPass123!\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login as admin and get JWT token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/auth/me/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "me", "{{user_id}}"]
+						},
+						"description": "Get user profile by ID (requires authentication)"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for user registration and login"
+		},
+		{
+			"name": "2. Hotel Management (Admin)",
+			"item": [
+				{
+					"name": "List Hotels (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/hotels?limit=10&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["hotels"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all hotels (public endpoint, no auth required)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Hotel by ID (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/hotels/{{hotel_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["hotels", "{{hotel_id}}"]
+						},
+						"description": "Get hotel details by ID (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Hotel (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('hotel_id', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Grand Luxury Hotel\",\n  \"description\": \"5-star luxury hotel in the heart of Jakarta\",\n  \"address\": \"Jl. Sudirman No. 123, Jakarta Pusat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/hotels",
+							"host": ["{{base_url}}"],
+							"path": ["hotels"]
+						},
+						"description": "Create a new hotel (admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Hotel (Admin) ⭐ NEW",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Grand Luxury Hotel\",\n  \"description\": \"Updated: Premier 5-star luxury hotel\",\n  \"address\": \"Jl. Sudirman No. 123-125, Jakarta Pusat\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/hotels/{{hotel_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["hotels", "{{hotel_id}}"]
+						},
+						"description": "Update hotel information (admin only) - NEW FEATURE"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Hotel (Admin) ⭐ NEW",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/hotels/{{hotel_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["hotels", "{{hotel_id}}"]
+						},
+						"description": "Delete hotel (soft delete, admin only) - NEW FEATURE"
+					},
+					"response": []
+				}
+			],
+			"description": "Hotel management endpoints including full CRUD operations"
+		},
+		{
+			"name": "3. Room Type Management",
+			"item": [
+				{
+					"name": "List Room Types (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/room-types?limit=10&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["room-types"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all room types (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Room Type (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('room_type_id', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"hotel_id\": \"{{hotel_id}}\",\n  \"name\": \"Deluxe Suite\",\n  \"capacity\": 2,\n  \"base_price\": 1500000,\n  \"amenities\": \"King Bed, WiFi, TV, AC, Minibar, City View\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/room-types",
+							"host": ["{{base_url}}"],
+							"path": ["room-types"]
+						},
+						"description": "Create a new room type (admin only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Room type management endpoints"
+		},
+		{
+			"name": "4. Room Management (Admin)",
+			"item": [
+				{
+					"name": "List Rooms (Public)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rooms?limit=10&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["rooms"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List all rooms (public endpoint)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room by ID (Public) ⭐ NEW",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rooms/{{room_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["rooms", "{{room_id}}"]
+						},
+						"description": "Get room details by ID (public endpoint) - NEW FEATURE"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Room (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('room_id', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"room_type_id\": \"{{room_type_id}}\",\n  \"number\": \"101\",\n  \"status\": \"available\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rooms",
+							"host": ["{{base_url}}"],
+							"path": ["rooms"]
+						},
+						"description": "Create a new room (admin only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Room (Admin) ⭐ NEW",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"number\": \"101A\",\n  \"status\": \"maintenance\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rooms/{{room_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["rooms", "{{room_id}}"]
+						},
+						"description": "Update room information (admin only) - NEW FEATURE. Supports partial updates."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Room (Admin) ⭐ NEW",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rooms/{{room_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["rooms", "{{room_id}}"]
+						},
+						"description": "Delete room (soft delete, admin only) - NEW FEATURE"
+					},
+					"response": []
+				}
+			],
+			"description": "Room management endpoints with full CRUD operations"
+		},
+		{
+			"name": "5. Booking Management",
+			"item": [
+				{
+					"name": "Create Booking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('booking_id', response.data.id);",
+									"    }",
+									"    if (response.data && response.data.payment_url) {",
+									"        console.log('Payment URL:', response.data.payment_url);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"room_type_id\": \"{{room_type_id}}\",\n  \"check_in\": \"2025-12-15\",\n  \"check_out\": \"2025-12-20\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/bookings",
+							"host": ["{{base_url}}"],
+							"path": ["bookings"]
+						},
+						"description": "Create a new booking (authenticated users)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Bookings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings?limit=10&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["bookings"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List user's bookings"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Booking by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}"]
+						},
+						"description": "Get booking details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Check-in Booking",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}/checkin",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}", "checkin"]
+						},
+						"description": "Check-in to a confirmed booking"
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Booking",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/bookings/{{booking_id}}/cancel",
+							"host": ["{{base_url}}"],
+							"path": ["bookings", "{{booking_id}}", "cancel"]
+						},
+						"description": "Cancel a booking (triggers refund if paid)"
+					},
+					"response": []
+				}
+			],
+			"description": "Booking lifecycle management endpoints"
+		},
+		{
+			"name": "6. Payment Management",
+			"item": [
+				{
+					"name": "Get Payment by Booking ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.data && response.data.id) {",
+									"        pm.collectionVariables.set('payment_id', response.data.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/payments/booking/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "booking", "{{booking_id}}"]
+						},
+						"description": "Get payment information for a booking"
+					},
+					"response": []
+				},
+				{
+					"name": "Payment Webhook (Xendit Mock)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"payment_id\": \"{{payment_id}}\",\n  \"status\": \"paid\",\n  \"signature\": \"mock_signature_here\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/webhook",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "webhook"]
+						},
+						"description": "Webhook endpoint for payment provider (Xendit mock). In production, this would be called by Xendit."
+					},
+					"response": []
+				},
+				{
+					"name": "Refund Payment (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{admin_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Customer request - change of plans\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/payments/{{payment_id}}/refund",
+							"host": ["{{base_url}}"],
+							"path": ["payments", "{{payment_id}}", "refund"]
+						},
+						"description": "Process refund for a payment (admin only)"
+					},
+					"response": []
+				}
+			],
+			"description": "Payment management endpoints with Xendit integration"
+		},
+		{
+			"name": "7. Notifications",
+			"item": [
+				{
+					"name": "List Notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/notifications?limit=10&offset=0",
+							"host": ["{{base_url}}"],
+							"path": ["notifications"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "List user's notifications"
+					},
+					"response": []
+				}
+			],
+			"description": "Notification endpoints"
+		},
+		{
+			"name": "8. Gateway Aggregation",
+			"item": [
+				{
+					"name": "Get Booking Aggregate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/gateway/aggregate/bookings/{{booking_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["gateway", "aggregate", "bookings", "{{booking_id}}"]
+						},
+						"description": "Get aggregated booking data from multiple services (booking + payment + hotel info)"
+					},
+					"response": []
+				}
+			],
+			"description": "API Gateway aggregation endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}
