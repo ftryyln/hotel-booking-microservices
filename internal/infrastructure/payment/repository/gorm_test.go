@@ -36,6 +36,8 @@ func TestPaymentGormRepository(t *testing.T) {
 	updated, err := r.FindByID(context.Background(), p.ID)
 	require.NoError(t, err)
 	require.Equal(t, "paid", updated.Status)
+	require.Equal(t, "payload", updated.WebhookPayload)
+	require.Equal(t, "sig", updated.WebhookSignature)
 }
 
 func newTestDB(t *testing.T) *gorm.DB {

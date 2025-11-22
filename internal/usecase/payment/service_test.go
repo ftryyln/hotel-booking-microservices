@@ -16,35 +16,40 @@ import (
 
 func TestHandleWebhook(t *testing.T) {
 	paymentID := uuid.New()
-	repo := &paymentRepoStub{store: map[uuid.UUID]domain.Payment{
-		paymentID: {ID: paymentID, BookingID: uuid.New(), Status: string(valueobject.PaymentPending)},
-	}}
+	repo := &paymentRepoStub{store: map[uuid.UUID]domain.Payment{}}
 	provider := &providerStub{signatureValid: true}
 	updater := &bookingUpdaterStub{}
 	service := payment.NewService(repo, provider, updater)
 
 	tests := []struct {
-		name    string
-		valid   bool
-		wantErr bool
+		name           string
+		status         string
+		validSig       bool
+		wantErr        bool
+		wantBookingLen int
 	}{
-		{"valid", true, false},
-		{"invalid signature", false, true},
+		{"valid paid", domain.StatusPaid, true, false, 1},
+		{"expired maps to failed", "EXPIRED", true, false, 0},
+		{"invalid signature", domain.StatusPaid, false, true, 0},
 	}
 
 	for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				provider.signatureValid = tt.valid
-				updater.statuses = nil
-				cmd := assembler.WebhookCommand{PaymentID: paymentID, Status: domain.StatusPaid, Signature: "sig", RawPayload: "payload"}
-				err := service.HandleWebhook(context.Background(), cmd)
-				if tt.wantErr {
-					require.Error(t, err)
-					require.Len(t, updater.statuses, 0)
-				} else {
-					require.NoError(t, err)
-				require.Equal(t, []string{"confirmed"}, updater.statuses)
+		t.Run(tt.name, func(t *testing.T) {
+			provider.signatureValid = tt.validSig
+			updater.statuses = nil
+			repo.store[paymentID] = domain.Payment{ID: paymentID, BookingID: uuid.New(), Status: string(valueobject.PaymentPending)}
+			cmd := assembler.WebhookCommand{PaymentID: paymentID, Status: tt.status, Signature: "sig", RawPayload: "payload"}
+			err := service.HandleWebhook(context.Background(), cmd)
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Len(t, updater.statuses, 0)
+				return
 			}
+			require.NoError(t, err)
+			require.Len(t, updater.statuses, tt.wantBookingLen)
+			p := repo.store[paymentID]
+			require.Equal(t, "payload", p.WebhookPayload)
+			require.Equal(t, "sig", p.WebhookSignature)
 		})
 	}
 }
@@ -66,19 +71,19 @@ func TestRefund(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				if tt.shouldFail {
-					provider.refundErr = errors.New("fail")
-				} else {
-					provider.refundErr = nil
-				}
-				cmd := assembler.RefundCommand{PaymentID: paymentID, Reason: "test"}
-				_, err := service.Refund(context.Background(), cmd)
-				if tt.shouldFail {
-					require.Error(t, err)
-				} else {
-					require.NoError(t, err)
-				}
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.shouldFail {
+				provider.refundErr = errors.New("fail")
+			} else {
+				provider.refundErr = nil
+			}
+			cmd := assembler.RefundCommand{PaymentID: paymentID, Reason: "test"}
+			_, err := service.Refund(context.Background(), cmd)
+			if tt.shouldFail {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

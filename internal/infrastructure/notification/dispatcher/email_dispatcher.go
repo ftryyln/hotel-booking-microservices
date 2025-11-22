@@ -10,6 +10,9 @@ import (
 	domain "github.com/ftryyln/hotel-booking-microservices/internal/domain/notification"
 )
 
+// sendMailFn allows test override.
+var sendMailFn = smtp.SendMail
+
 // EmailDispatcher sends notifications via SMTP.
 type EmailDispatcher struct {
 	auth smtp.Auth
@@ -36,5 +39,5 @@ func (d *EmailDispatcher) Dispatch(ctx context.Context, target, message string) 
 	subject := "Notification " + time.Now().UTC().Format(time.RFC3339)
 	body := fmt.Sprintf("Subject: %s\r\nFrom: %s\r\nTo: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n%s",
 		subject, d.from, target, message)
-	return smtp.SendMail(d.host, d.auth, d.from, []string{strings.TrimSpace(target)}, []byte(body))
+	return sendMailFn(d.host, d.auth, d.from, []string{strings.TrimSpace(target)}, []byte(body))
 }

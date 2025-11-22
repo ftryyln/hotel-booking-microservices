@@ -28,6 +28,7 @@ type XenditOptions struct {
 	SuccessURL      string
 	FailureURL      string
 	InvoiceDuration time.Duration
+	Client          *http.Client
 }
 
 // NewXenditProvider builds a live provider client.
@@ -38,6 +39,10 @@ func NewXenditProvider(apiKey, callbackToken string, opt XenditOptions) *XenditP
 	if opt.InvoiceDuration <= 0 {
 		opt.InvoiceDuration = 15 * time.Minute
 	}
+	httpClient := opt.Client
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 10 * time.Second}
+	}
 	return &XenditProvider{
 		apiKey:          apiKey,
 		callbackToken:   callbackToken,
@@ -45,7 +50,7 @@ func NewXenditProvider(apiKey, callbackToken string, opt XenditOptions) *XenditP
 		successURL:      opt.SuccessURL,
 		failureURL:      opt.FailureURL,
 		invoiceDuration: opt.InvoiceDuration,
-		client:          &http.Client{Timeout: 10 * time.Second},
+		client:          httpClient,
 	}
 }
 
