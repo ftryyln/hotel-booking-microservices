@@ -155,7 +155,278 @@ curl -X POST http://localhost:8088/api/v1/payments/webhook \
 
 ---
 
-## 📂 Repository Layout
+## � Complete API Reference (For Testers)
+
+### Base URL
+```
+http://localhost:8088/api/v1
+```
+
+### Authentication Endpoints
+
+#### 1. Register User
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!",
+  "role": "customer"  // or "admin"
+}
+```
+
+#### 2. Login
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "SecurePass123!"
+}
+
+Response:
+{
+  "data": {
+    "access_token": "eyJhbGc...",
+    "refresh_token": "eyJhbGc..."
+  }
+}
+```
+
+#### 3. Get User Profile
+```http
+GET /auth/me/{user_id}
+Authorization: Bearer {token}
+```
+
+---
+
+### Hotel Management Endpoints
+
+#### 4. List Hotels (Public)
+```http
+GET /hotels?limit=10&offset=0
+```
+
+#### 5. Get Hotel by ID (Public)
+```http
+GET /hotels/{hotel_id}
+```
+
+#### 6. Create Hotel (Admin Only) 🔒
+```http
+POST /hotels
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "name": "Grand Hotel",
+  "description": "Luxury hotel in city center",
+  "address": "123 Main St, Jakarta"
+}
+```
+
+#### 7. Update Hotel (Admin Only) 🔒 
+```http
+PUT /hotels/{hotel_id}
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "name": "Updated Grand Hotel",
+  "description": "Updated description",
+  "address": "Updated address"
+}
+```
+
+#### 8. Delete Hotel (Admin Only) 🔒 
+```http
+DELETE /hotels/{hotel_id}
+Authorization: Bearer {admin_token}
+```
+
+---
+
+### Room Type Endpoints
+
+#### 9. List Room Types (Public)
+```http
+GET /room-types?limit=10&offset=0
+```
+
+#### 10. Create Room Type (Admin Only) 🔒
+```http
+POST /room-types
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "hotel_id": "{hotel_id}",
+  "name": "Deluxe Suite",
+  "capacity": 2,
+  "base_price": 1500000,
+  "amenities": "WiFi, TV, AC, Minibar"
+}
+```
+
+---
+
+### Room Management Endpoints
+
+#### 11. List Rooms (Public)
+```http
+GET /rooms?limit=10&offset=0
+```
+
+#### 12. Get Room by ID (Public) 
+```http
+GET /rooms/{room_id}
+```
+
+#### 13. Create Room (Admin Only) 🔒
+```http
+POST /rooms
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "room_type_id": "{room_type_id}",
+  "number": "101",
+  "status": "available"  // available, maintenance, occupied
+}
+```
+
+#### 14. Update Room (Admin Only) 🔒 
+```http
+PUT /rooms/{room_id}
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "number": "102",
+  "status": "maintenance"
+}
+```
+
+#### 15. Delete Room (Admin Only) 🔒 
+```http
+DELETE /rooms/{room_id}
+Authorization: Bearer {admin_token}
+```
+
+---
+
+### Booking Endpoints
+
+#### 16. Create Booking 🔒
+```http
+POST /bookings
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "room_type_id": "{room_type_id}",
+  "check_in": "2025-12-01",
+  "check_out": "2025-12-05"
+}
+```
+
+#### 17. List Bookings 🔒
+```http
+GET /bookings?limit=10&offset=0
+Authorization: Bearer {token}
+```
+
+#### 18. Get Booking by ID 🔒
+```http
+GET /bookings/{booking_id}
+Authorization: Bearer {token}
+```
+
+#### 19. Cancel Booking 🔒
+```http
+POST /bookings/{booking_id}/cancel
+Authorization: Bearer {token}
+```
+
+#### 20. Check-in Booking 🔒
+```http
+POST /bookings/{booking_id}/checkin
+Authorization: Bearer {token}
+```
+
+---
+
+### Payment Endpoints
+
+#### 21. Get Payment by Booking ID 🔒
+```http
+GET /payments/booking/{booking_id}
+Authorization: Bearer {token}
+```
+
+#### 22. Payment Webhook (Provider Callback)
+```http
+POST /payments/webhook
+Content-Type: application/json
+
+{
+  "payment_id": "{payment_id}",
+  "status": "paid",
+  "signature": "{hmac_signature}"
+}
+```
+
+#### 23. Refund Payment (Admin Only) 🔒
+```http
+POST /payments/{payment_id}/refund
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+
+{
+  "reason": "Customer request"
+}
+```
+
+---
+
+### Notification Endpoints
+
+#### 24. List Notifications 🔒
+```http
+GET /notifications?limit=10&offset=0
+Authorization: Bearer {token}
+```
+
+---
+
+### Gateway Aggregation Endpoint
+
+#### 25. Get Booking Aggregate 🔒
+```http
+GET /gateway/aggregate/bookings/{booking_id}
+Authorization: Bearer {token}
+
+Response: Combined data from booking, payment, and hotel services
+```
+
+---
+
+### Legend
+- 🔒 = Requires Authentication (JWT Bearer Token)
+-  = Newly implemented endpoint
+- **Admin Only** = Requires `role: "admin"` in JWT claims
+
+### Auto-Checkout Feature 
+- **Trigger**: Automatic CronJob (daily at 10:00 AM)
+- **Process**: Bookings with `checkout_date = today` AND `status = checked_in` are automatically transitioned to `completed`
+- **No API Call Required**: Fully automated background process
+
+---
+
+## �📂 Repository Layout
 
 ```
 cmd/<service>/           # each service entry point (auth-service, booking-service, etc.)
@@ -249,20 +520,20 @@ Copy `.env.example` to `.env`:
   - `GET /hotels` - List all hotels
   - `POST /hotels` - Create hotel (admin)
   - `GET /hotels/{id}` - Get hotel by ID
-  - `PUT /hotels/{id}` - Update hotel (admin) ⭐ NEW
-  - `DELETE /hotels/{id}` - Delete hotel (admin) ⭐ NEW
+  - `PUT /hotels/{id}` - Update hotel (admin)
+  - `DELETE /hotels/{id}` - Delete hotel (admin)
   - `GET /rooms` - List all rooms
   - `POST /rooms` - Create room (admin)
-  - `GET /rooms/{id}` - Get room by ID ⭐ NEW
-  - `PUT /rooms/{id}` - Update room (admin) ⭐ NEW
-  - `DELETE /rooms/{id}` - Delete room (admin) ⭐ NEW
+  - `GET /rooms/{id}` - Get room by ID 
+  - `PUT /rooms/{id}` - Update room (admin) 
+  - `DELETE /rooms/{id}` - Delete room (admin) 
 - Booking `/bookings`, cancellation, checkpoint
-  - Auto-checkout via CronJob (daily at 10:00 AM) ⭐ NEW
+  - Auto-checkout via CronJob (daily at 10:00 AM) 
 - Payment `/payments`, `/payments/webhook`
 - Notification `/notifications`
 - Gateway `/gateway/aggregate/bookings/{id}`
 
-### Auto-Checkout CronJob ⭐ NEW
+### Auto-Checkout CronJob 
 1. **Scheduler**: Runs daily at 10:00 AM (configurable via cron expression)
 2. **Process**: 
    - Finds all bookings with `checkout_date = today` AND `status = checked_in`
